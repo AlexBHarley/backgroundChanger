@@ -1,32 +1,52 @@
 from bs4 import BeautifulSoup
 import requests
 import os
-    
+import errno
+import random
 import shutil
 
-site_content = requests.get('http://www.reddit.com/r/wallpapers')
-data = site_content.text
+
+subreddit = input("Enter the subreddit you wish to download images from: ")
+subreddit = "wallpapers"
+r = requests.get("http://www.reddit.com/r/" + subreddit)
+
+
+data =r.text
 soup = BeautifulSoup(data)
-#print(soup)
-pic_list = []
-for tag in soup.find_all('div', 'sitetable linklisting'):
-    
-    for link in tag.find_all('a', href = True):
-        pic = (link['href'])
-        pic_list += [pic]
-#background_pic = pic_list[0]
+#print(soup.prettify())
+
+#f = open("Untitled Document", 'r')
+#soup = BeautifulSoup(f)
+
+#f.close()
+
+
+try:
+    os.chdir(os.getcwd() + "/wallpapers")
+
+except OSError as e:
+    os.makedirs("/wallpapers")
+    os.chdir(os.getcwd() +"/wallpapers")
 
 
 
+links = soup.find_all('a')
+i = 1
+for link in links:
+    url = link.get('href')
 
+    url = str(url)
+    if str(url[0:10]) == "http://i.i":
+        data = requests.get(url, stream = True)
+        try:
+            with open(str(i), "wb") as outFile:
+                print("downloading")
+                for chunk in data.iter_content(128):
+                    outFile.write(chunk)
+        except errno as e:
+            print(e)
 
-#url = background_pic
-url = 'http://i.imgur.com/cMn17t9.png'
-response = requests.get(url, stream=True)
-with open('img.png', 'wb') as out_file:
-    shutil.copyfileobj(response.raw, out_file)
-del response
+    i+=1
 
-import ctypes
-SPI_SETDESKWALLPAPER = 20 
-ctypes.windll.user32.SystemParametersInfoA(SPI_SETDESKWALLPAPER, 0, "img.png" , 0)
+img = random.choice(os.listdir())
+os.system("gsettings set org.gnome.desktop.background picture-uri file://" + os.getcwd() + "/" + img)
